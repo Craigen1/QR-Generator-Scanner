@@ -1,116 +1,91 @@
 "use client";
-import { useEffect, useState } from "react";
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import axios from "axios";
+import QRCodeGenerator from "./components/QRCode";
+import Main from "./components/Main";
 
 export default function Home() {
-  const [personData, setPersonData] = useState([]);
-  const [lname, setLname] = useState("");
-  const [fname, setFname] = useState("");
-  const [age, setAge] = useState(0);
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLogin, setIsLogin] = useState(false);
 
-  useEffect(() => {
-    const getPerson = async () => {
-      try {
-        const res = await fetch(`http://localhost:8080`);
-        const data = await res.json();
-        setPersonData(data);
-      } catch (err) {}
-    };
-    getPerson();
-  }, []);
-
-  const handlePaste = async (e) => {
+  const handleSignIn = async (e) => {
     e.preventDefault();
-    const readtText = await navigator.clipboard.readText();
-    readtText.split("\n").map((text) => {
-      let tText = text.split("\t");
-      console.log(tText);
-      const person = {
-        fname: tText[0],
-        lname: tText[1],
-        age: tText[2],
-      };
-      setLname(person.lname);
-      setFname(person.fname);
-      setAge(person.age);
-      addPerson(person);
-    });
-  };
-
-  const addPerson = async (person) => {
+    const userCredentials = {
+      email,
+      password,
+    };
     try {
-      await fetch(`http://localhost:8080/add`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(person),
-      });
+      const res = await axios.post(
+        "http://localhost:8080/signin",
+        userCredentials
+      );
+      if (res.status === 200) {
+        setIsLogin(true);
+      }
     } catch (err) {
-      console.log(err);
+      console.log(`Error Login: ${err}`);
     }
   };
 
-  const hanldeDelete = async (id) => {
-    try {
-      await fetch(`http://localhost:8080/delete/${id}`, {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-    } catch (err) {
-      console.log(err);
-    }
+  const handleSignUpRedirect = () => {
+    router.push("/signup");
   };
-
   return (
-    <div className="flex flex-col justify-center items-center text-center">
-      <h2 className="font-bold text-2xl">Paste Text from Excel</h2>
-      <div>
-        <button
-          onClick={handlePaste}
-          className="bg-neutral-900 text-white p-2 rounded-md m-2"
-        >
-          Paste person
-        </button>
-      </div>
-      {personData.map((person, index) => (
-        <div key={index}>
-          <label>Firstname:</label>
-          <input
-            value={person.fname}
-            className="m-1 border p-1 rounded"
-            type="text"
-          />
-          <label>Lastname:</label>
-          <input
-            value={person.lname}
-            className="m-1 border p-1 rounded"
-            type="text"
-          />
-          <label>Age:</label>
-          <input
-            value={person.age}
-            className="m-1 border p-1 rounded"
-            type="number"
-          />
-        </div>
-      ))}
-      <div className="flex flex-col border p-2 rounded-md w-1/2">
-        {personData.map((item) => (
-          <div key={item.personId} className="grid grid-cols-4 gap-2">
-            <span>{item.fname}</span>
-            <span>{item.lname}</span>
-            <span>{item.age}</span>
-            <button
-              onClick={() => hanldeDelete(item.personId)}
-              className="text-white bg-red-600 rounded-sm my-1"
-            >
-              Delete
-            </button>
+    <div>
+      {!isLogin ? (
+        <div className="flex justify-center items-center h-screen bg-gray-100">
+          <div className="w-full max-w-md bg-white rounded-lg shadow-md p-8">
+            <h2 className="text-2xl font-bold text-center mb-6">Sign In</h2>
+            <form>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Email
+                </label>
+                <input
+                  onChange={(e) => setEmail(e.target.value)}
+                  type="email"
+                  className="input input-bordered w-full"
+                  placeholder="Enter your email"
+                />
+              </div>
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Password
+                </label>
+                <input
+                  onChange={(e) => setPassword(e.target.value)}
+                  type="password"
+                  className="input input-bordered w-full"
+                  placeholder="Enter your password"
+                />
+              </div>
+              <div className="mb-4">
+                <button
+                  onClick={handleSignIn}
+                  className="btn btn-primary w-full"
+                >
+                  Sign In
+                </button>
+              </div>
+              <div className="text-sm text-center">
+                Don't have an account?{" "}
+                <button
+                  type="button"
+                  className="text-blue-500 hover:underline"
+                  onClick={handleSignUpRedirect} // Redirect when clicked
+                >
+                  Sign Up
+                </button>
+              </div>
+            </form>
           </div>
-        ))}
-      </div>
+        </div>
+      ) : (
+        <Main />
+      )}
     </div>
   );
 }
