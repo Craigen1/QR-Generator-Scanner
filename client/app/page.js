@@ -13,6 +13,7 @@ export default function Home() {
 
   const handleSignIn = async (e) => {
     e.preventDefault();
+    axios.defaults.withCredentials = true;
     const userCredentials = {
       email,
       password,

@@ -5,15 +5,20 @@ const config = require("./dbFiles/dbConfig");
 const QRCode = require("qrcode");
 const session = require("express-session");
 const crypto = require("crypto");
+const cookieParser = require("cookie-parser");
+const bodyParser = require("body-parser");
 
 const port = 8080;
 
 const app = express();
 app.use(express.json());
+app.use(cookieParser());
+app.use(bodyParser.json());
 
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: ["http://localhost:3000"],
+    methods: ["POST", "GET", "PUT", "DELETE"],
     credentials: true,
   })
 );
@@ -24,10 +29,9 @@ app.use(
   session({
     secret: sessionSecret,
     resave: false,
-    saveUninitialized: true,
+    saveUninitialized: false,
     cookie: {
       secure: false,
-      httpOnly: true,
       // maxAge: 1000 * 60 * 60,
     },
   })
@@ -47,8 +51,7 @@ app.post("/signin", async (req, res) => {
       );
 
     if (result.recordset.length > 0) {
-      const userSession = (req.session.user = result.recordset[0]);
-      console.log("User session set:", userSession);
+      const userSession = (req.session.user = result.recordset[0].fullname);
       res.status(200).json({ message: "Login successful", user: userSession });
     } else {
       res.status(401).json({ message: "Invalid email or password" });
@@ -60,17 +63,12 @@ app.post("/signin", async (req, res) => {
 
 //GET User
 app.get("/getUser", async (req, res) => {
-  try {
-    console.log("Session on getUser:", req.session);
-    if (req.session.user) {
-      res.status(200).json(req.session.user);
-    } else {
-      res.status(401).json({ message: "Not logged in" });
-    }
-  } catch (err) {
-    console.log(`GET User API: ${err}`);
+  if (req.session.user) {
+    console.log("Session on getUser:", req.session.user);
+    return res.status(200).json(req.session.user);
+  } else {
+    res.status(401).json({ message: "Not logged in" });
   }
-  console.log(req.session.user);
 });
 
 //SIGNUP

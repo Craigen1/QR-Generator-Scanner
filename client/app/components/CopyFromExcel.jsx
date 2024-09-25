@@ -59,6 +59,9 @@ const CopyFromExcel = () => {
           "Content-Type": "application/json",
         },
       });
+      setPersonData((prev) =>
+        prev.filter((personData) => personData.personId !== id)
+      );
     } catch (err) {
       console.log(err);
     }
