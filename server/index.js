@@ -47,11 +47,11 @@ app.post("/signin", async (req, res) => {
       .input("password", sql.NVarChar, password)
       .input("email", sql.NVarChar, email)
       .query(
-        "SELECT fullname, userEmail FROM usersTbl WHERE userPass = @password AND userEmail = @email"
+        "SELECT fullname, userEmail, userPass FROM usersTbl WHERE userPass = @password AND userEmail = @email"
       );
 
     if (result.recordset.length > 0) {
-      const userSession = (req.session.user = result.recordset[0].fullname);
+      const userSession = (req.session.user = result.recordset[0]);
       res.status(200).json({ message: "Login successful", user: userSession });
     } else {
       res.status(401).json({ message: "Invalid email or password" });
@@ -61,11 +61,20 @@ app.post("/signin", async (req, res) => {
   }
 });
 
+//Logout
+app.post("/logout", (req, res) => {
+  console.log("Logged out:", req.session.user.fullname);
+  req.session.destroy(() => {
+    res.clearCookie("connect.sid");
+    res.status(200).json({ message: "Logged out successfully" });
+  });
+});
+
 //GET User
 app.get("/getUser", async (req, res) => {
   if (req.session.user) {
-    console.log("Session on getUser:", req.session.user);
-    return res.status(200).json(req.session.user);
+    console.log("Logged in:", req.session.user.fullname);
+    res.status(200).json(req.session.user.fullname);
   } else {
     res.status(401).json({ message: "Not logged in" });
   }

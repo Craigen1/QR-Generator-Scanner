@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import axios from "axios";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 const signup = () => {
   const [fullname, setFullName] = useState("");
@@ -22,12 +22,6 @@ const signup = () => {
     } catch (err) {
       console.log(`Error SignUp yan kala mo: ${err}`);
     }
-  };
-
-  const router = useRouter();
-
-  const handleSignInRedirect = () => {
-    router.push("/");
   };
 
   return (
@@ -75,13 +69,9 @@ const signup = () => {
           </div>
           <div className="text-sm text-center">
             Already have an account?{" "}
-            <button
-              type="button"
-              className="text-blue-500 hover:underline"
-              onClick={handleSignInRedirect} // Redirect when clicked
-            >
+            <Link href="/" className="text-blue-500 hover:underline">
               Sign In
-            </button>
+            </Link>
           </div>
         </form>
       </div>

@@ -1,92 +1,94 @@
 "use client";
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
 import axios from "axios";
-import QRCodeGenerator from "./components/QRCode";
-import Main from "./components/Main";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isLogin, setIsLogin] = useState(false);
+  const [message, setMessage] = useState("");
 
   const handleSignIn = async (e) => {
     e.preventDefault();
-    axios.defaults.withCredentials = true;
     const userCredentials = {
       email,
       password,
     };
     try {
-      const res = await axios.post(
+      const response = await axios.post(
         "http://localhost:8080/signin",
-        userCredentials
+        userCredentials,
+        {
+          withCredentials: true,
+        }
       );
-      if (res.status === 200) {
-        setIsLogin(true);
+      if (
+        response.data.user.userEmail === email &&
+        response.data.user.userPass === password
+      ) {
+        router.push("/components/dashboard");
       }
     } catch (err) {
+      setMessage("Invalid Credentials");
       console.log(`Error Login: ${err}`);
     }
   };
 
-  const handleSignUpRedirect = () => {
-    router.push("/signup");
-  };
   return (
     <div>
-      {!isLogin ? (
-        <div className="flex justify-center items-center h-screen bg-gray-100">
-          <div className="w-full max-w-md bg-white rounded-lg shadow-md p-8">
-            <h2 className="text-2xl font-bold text-center mb-6">Sign In</h2>
-            <form>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Email
-                </label>
-                <input
-                  onChange={(e) => setEmail(e.target.value)}
-                  type="email"
-                  className="input input-bordered w-full"
-                  placeholder="Enter your email"
-                />
-              </div>
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Password
-                </label>
-                <input
-                  onChange={(e) => setPassword(e.target.value)}
-                  type="password"
-                  className="input input-bordered w-full"
-                  placeholder="Enter your password"
-                />
-              </div>
-              <div className="mb-4">
-                <button
-                  onClick={handleSignIn}
-                  className="btn btn-primary w-full"
-                >
-                  Sign In
-                </button>
-              </div>
-              <div className="text-sm text-center">
-                Don't have an account?{" "}
-                <button
-                  type="button"
-                  className="text-blue-500 hover:underline"
-                  onClick={handleSignUpRedirect} // Redirect when clicked
-                >
-                  Sign Up
-                </button>
-              </div>
-            </form>
-          </div>
+      <div className="flex justify-center items-center h-screen bg-gray-100">
+        <div className="w-full max-w-md bg-white rounded-lg shadow-md p-8">
+          <h2 className="text-2xl font-bold text-center mb-6">Sign In</h2>
+          <form>
+            {message ? (
+              <p className="bg-red-400/80 p-2 rounded-md text-center text-white mb-2">
+                {message}
+              </p>
+            ) : (
+              ""
+            )}
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Email
+              </label>
+              <input
+                onChange={(e) => setEmail(e.target.value)}
+                type="email"
+                className="input input-bordered w-full"
+                placeholder="Enter your email"
+              />
+            </div>
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Password
+              </label>
+              <input
+                onChange={(e) => setPassword(e.target.value)}
+                type="password"
+                className="input input-bordered w-full"
+                placeholder="Enter your password"
+              />
+            </div>
+            <div className="mb-4">
+              <button onClick={handleSignIn} className="btn btn-primary w-full">
+                Sign In
+              </button>
+            </div>
+            <div className="text-sm text-center">
+              Don't have an account?{" "}
+              <Link
+                href="/components/signup"
+                className="text-blue-500 hover:underline"
+              >
+                Sign Up
+              </Link>
+            </div>
+          </form>
         </div>
-      ) : (
-        <Main />
-      )}
+      </div>
     </div>
   );
 }
