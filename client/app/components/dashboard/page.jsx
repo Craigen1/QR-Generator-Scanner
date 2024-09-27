@@ -55,7 +55,7 @@ const page = () => {
         </div>
         {user ? (
           <h3 className="text-2xl ">
-            Hello <span className="font-bold text-sky-500">{user}</span>
+            Hello, <span className="font-bold text-sky-500">{user}</span>
           </h3>
         ) : (
           <p>No user is logged in.</p>

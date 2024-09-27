@@ -6,14 +6,14 @@ import { useRouter } from "next/navigation";
 
 export default function Home() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
 
   const handleSignIn = async (e) => {
     e.preventDefault();
     const userCredentials = {
-      email,
+      username,
       password,
     };
     try {
@@ -25,7 +25,7 @@ export default function Home() {
         }
       );
       if (
-        response.data.user.userEmail === email &&
+        response.data.user.userName === username &&
         response.data.user.userPass === password
       ) {
         router.push("/components/dashboard");
@@ -52,13 +52,13 @@ export default function Home() {
 
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Email
+                Username
               </label>
               <input
-                onChange={(e) => setEmail(e.target.value)}
-                type="email"
+                onChange={(e) => setUsername(e.target.value)}
+                type="username"
                 className="input input-bordered w-full"
-                placeholder="Enter your email"
+                placeholder="Enter your username"
               />
             </div>
             <div className="mb-6">

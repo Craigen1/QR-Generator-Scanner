@@ -12,8 +12,11 @@ const QRCodeGenerator = (p) => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch(`http://localhost:8080/getqr`);
+        const response = await axios.get(`http://localhost:8080/getqr`, {
+          withCredentials: true,
+        });
         const data = await response.json();
+        console.log(data);
         setQRData(data);
       } catch (err) {
         console.error("Error fetching QR data:", err);
@@ -28,11 +31,15 @@ const QRCodeGenerator = (p) => {
       return;
     }
     try {
-      await axios.post(`http://localhost:8080/generate`, {
-        QRitem_name: itemName,
-        QRitem_desc: itemDesc,
-        QRprice: itemPrice,
-      });
+      await axios.post(
+        `http://localhost:8080/generate`,
+        {
+          QRitem_name: itemName,
+          QRitem_desc: itemDesc,
+          QRprice: itemPrice,
+        },
+        { withCredentials: true }
+      );
     } catch (err) {
       console.error("Error generating QR code:", err);
     }

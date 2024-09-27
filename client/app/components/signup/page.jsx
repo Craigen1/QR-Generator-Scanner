@@ -2,23 +2,29 @@
 import React, { useState } from "react";
 import axios from "axios";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const signup = () => {
-  const [fullname, setFullName] = useState("");
-  const [email, setEmail] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [message, setMessage] = useState("");
+  const router = useRouter();
+
+  const person = {
+    firstname: firstName,
+    lastname: lastName,
+    username: username,
+    password: password,
+  };
 
   const handelSignUp = async (e) => {
     e.preventDefault();
-    const person = {
-      fullname: fullname,
-      email: email,
-      password: password,
-    };
-    console.log(person);
     try {
-      await axios.post("http://localhost:8080/signup", person);
-      router.push("/");
+      const res = await axios.post("http://localhost:8080/signup", person);
+      setMessage(res.data.message);
+      console.log(message);
     } catch (err) {
       console.log(`Error SignUp yan kala mo: ${err}`);
     }
@@ -28,27 +34,51 @@ const signup = () => {
     <div className="flex justify-center items-center h-screen bg-gray-100">
       <div className="w-full max-w-md bg-white rounded-lg shadow-md p-8">
         <h2 className="text-2xl font-bold text-center mb-6">Sign Up</h2>
+        {message ? (
+          <p
+            className={`p-2 rounded-md text-center text-white mb-2 ${
+              message === "Username already exist."
+                ? "bg-red-400/80"
+                : "bg-green-400/80 "
+            }`}
+          >
+            {message}
+          </p>
+        ) : (
+          ""
+        )}
         <form>
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Full Name
+              First Name
             </label>
             <input
               type="text"
               className="input input-bordered w-full"
               placeholder="Enter your full name"
-              onChange={(e) => setFullName(e.target.value)}
+              onChange={(e) => setFirstName(e.target.value)}
             />
           </div>
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email
+              Last Name
             </label>
             <input
-              onChange={(e) => setEmail(e.target.value)}
-              type="email"
+              type="text"
               className="input input-bordered w-full"
-              placeholder="Enter your email"
+              placeholder="Enter your full name"
+              onChange={(e) => setLastName(e.target.value)}
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Username
+            </label>
+            <input
+              onChange={(e) => setUsername(e.target.value)}
+              type="username"
+              className="input input-bordered w-full"
+              placeholder="Enter your username"
             />
           </div>
           <div className="mb-6">
