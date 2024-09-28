@@ -5,15 +5,11 @@ const config = require("./dbFiles/dbConfig");
 const QRCode = require("qrcode");
 const session = require("express-session");
 const crypto = require("crypto");
-const cookieParser = require("cookie-parser");
-const bodyParser = require("body-parser");
 
 const port = 8080;
 
 const app = express();
 app.use(express.json());
-app.use(cookieParser());
-app.use(bodyParser.json());
 
 app.use(
   cors({
@@ -93,15 +89,35 @@ app.post("/signup", async (req, res) => {
     if (existingUser.recordset.length > 0) {
       return res.status(200).json({ message: "Username already exist." });
     }
+
+    //INSERT and empty row in qrCode table
+    let qrCodeEmp = await pool
+      .request()
+      .input("username", sql.NVarChar, username)
+      .query(
+        "INSERT INTO qrCode (qr_data, QRitem_name, QRitem_desc, QRprice) VALUES ('','','',''); SELECT SCOPE_IDENTITY() as qrCode_id"
+      );
+    let qrCode_id = qrCodeEmp.recordset[0].qrCode_id;
+    await pool
+      .request()
+      .input("qr_id", sql.Int, qrCode_id)
+      .input("username", sql.NVarChar, username)
+      .query("UPDATE usersTbl SET qr_id = @qr_id WHERE userName = @username");
+
+    //create new user acc
     await pool
       .request()
       .input("firstName", sql.NVarChar, firstname)
       .input("lastName", sql.NVarChar, lastname)
       .input("userName", sql.NVarChar, username)
       .input("userPass", sql.NVarChar, password)
+      .input("qr_id", sql.Int, qrCode_id)
       .query(
-        `INSERT INTO usersTbl (firstName, lastName, userName, userPass) VALUES (@firstName, @lastName, @userName, @userPass)`
+        `INSERT INTO usersTbl (firstName, lastName, userName, userPass, qr_id) VALUES (@firstName, @lastName, @userName, @userPass, @qr_id)`
       );
+
+    //now, delete empty row
+    await pool.request().query("DELETE qrCode WHERE qr_data = ''");
 
     // Successfully created the user
     res.status(200).json({ message: "Account created successfully." });
@@ -125,8 +141,6 @@ app.get("/", async (req, res) => {
 //GET QR
 app.get("/getqr", async (req, res) => {
   const userSession = req.session.user;
-  console.log("QR Sesh", userSession);
-
   try {
     let pool = await sql.connect(config);
     // 1. Fetch the QR code for the logged-in user using the user's userName (from session)
@@ -135,16 +149,15 @@ app.get("/getqr", async (req, res) => {
       .input("username", sql.NVarChar, userSession.userName)
       .query("SELECT qr_id FROM usersTbl WHERE userName = @username");
 
-    //Example: userName: ray - qr_id: 10
+    //Example: userName: jethro - qr_id: 22
     let user = userQuery.recordset[0];
-    console.log("usersTbl qr_id", user);
 
     // 2. Fetch the QR code details from qrCode table using the user's qr_id
     let qrQuery = await pool
       .request()
       .input("qr_id", sql.Int, user.qr_id)
       .query("SELECT * FROM qrCode WHERE qr_id = @qr_id");
-    let qrData = qrQuery.recordset[0];
+    let qrData = qrQuery.recordset;
 
     res.status(200).json(qrData);
   } catch (err) {
@@ -153,40 +166,51 @@ app.get("/getqr", async (req, res) => {
   }
 });
 
-//POST QR Code
+//POST QR
 app.post("/generate", async (req, res) => {
   const { QRitem_name, QRitem_desc, QRprice } = req.body;
-  const qrcodeURL = await QRCode.toDataURL(QRitem_name);
   const userSession = req.session.user;
-  console.log("POST QR User Sesh", userSession);
+
   try {
     let pool = await sql.connect(config);
+    const qrcodeURL = await QRCode.toDataURL(QRitem_name); // Generate QR code
 
-    //Generate Qr Code
-    await pool
+    // Check if the user already has a qr_id in usersTbl
+    let userQuery = await pool
       .request()
       .input("username", sql.NVarChar, userSession.userName)
-      .input("qr_data", sql.NVarChar, qrcodeURL)
-      .input("QRitem_name", sql.NVarChar, QRitem_name)
-      .input("QRitem_desc", sql.NVarChar, QRitem_desc)
-      .input("QRprice", sql.Float, QRprice)
-      .query(
-        `INSERT INTO qrCode (qr_data, QRitem_name, QRitem_desc, QRprice) VALUES (@qr_data, @QRitem_name, @QRitem_desc, @QRprice)`
+      .query("SELECT qr_id FROM usersTbl WHERE userName = @username");
+
+    const user = userQuery.recordset[0];
+
+    if (user && user.qr_id) {
+      // User already has a qr_id
+      console.log(
+        "User already has a qr_id. Inserting new QR code with the same qr_id."
       );
 
-    //Get qr_id in qrCodes table
-    let qq = await pool.request().query("SELECT SCOPE_IDENTITY() AS qr_id");
-    const recSet = qq.recordset[0];
-    console.log("qrCodesID", recSet);
+      // Insert the new QR code with the existing qr_id
+      await pool
+        .request()
+        .input("qr_id", sql.Int, user.qr_id) // Keep the same qr_id
+        .input("qr_data", sql.NVarChar, qrcodeURL)
+        .input("QRitem_name", sql.NVarChar, QRitem_name)
+        .input("QRitem_desc", sql.NVarChar, QRitem_desc)
+        .input("QRprice", sql.Float, QRprice)
+        .query(
+          `INSERT INTO qrCode (qr_id, qr_data, QRitem_name, QRitem_desc, QRprice) 
+           VALUES (@qr_id, @qr_data, @QRitem_name, @QRitem_desc, @QRprice)`
+        );
 
-    //Assign qr_id depending on the user account
-    await pool
-      .request()
-      .input("qr_id", sql.Int, recSet.qr_id)
-      .input("username", sql.NVarChar, userSession.userName)
-      .query("UPDATE usersTbl SET qr_id = @qr_id WHERE userName = @username");
+      res
+        .status(200)
+        .send(
+          `New QR code added for user: ${userSession.userName} with qr_id: ${user.qr_id}`
+        );
+    }
   } catch (err) {
-    console.log(`Error yan POST QR: ${err}`);
+    console.log(`Error while generating QR: ${err}`);
+    res.status(500).send("Error generating QR code");
   }
 });
 
@@ -198,9 +222,9 @@ app.put("/updated/status/:id", async (req, res) => {
     let pool = await sql.connect(config);
     await pool
       .request()
-      .input("qr_id", sql.Int, id)
+      .input("qrCode_id", sql.Int, id)
       .input("status", sql.NVarChar, status)
-      .query("UPDATE qrcode SET status = @status WHERE qr_id = @qr_id");
+      .query("UPDATE qrcode SET status = @status WHERE qrCode_id = @qrCode_id");
     res.status(200).send("Status updated successfully.");
   } catch (err) {
     console.log(`Error API UPDATE: ${err}`);
@@ -239,8 +263,8 @@ app.delete("/delete/qr/:id", async (req, res) => {
     let pool = await sql.connect(config);
     await pool
       .request()
-      .input("qr_id", sql.Int, id)
-      .query("DELETE from qrcode WHERE qr_id = @qr_id");
+      .input("qrCode_id", sql.Int, id)
+      .query("DELETE from qrcode WHERE qrCode_id = @qrCode_id");
     res.status(200).send("Delete QR successfully.");
   } catch (err) {
     console.log(err);

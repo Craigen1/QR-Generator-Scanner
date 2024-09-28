@@ -15,9 +15,8 @@ const QRCodeGenerator = (p) => {
         const response = await axios.get(`http://localhost:8080/getqr`, {
           withCredentials: true,
         });
-        const data = await response.json();
-        console.log(data);
-        setQRData(data);
+        console.log(response.data);
+        setQRData(response.data);
       } catch (err) {
         console.error("Error fetching QR data:", err);
       }
@@ -45,11 +44,11 @@ const QRCodeGenerator = (p) => {
     }
   };
 
-  const handleUpdateStatus = async (qr_id, btnId) => {
+  const handleUpdateStatus = async (qrCode_id, btnId) => {
     try {
       const newStatus = btnId === "A" ? "Good" : "Bad";
       const response = await fetch(
-        `http://localhost:8080/updated/status/${qr_id}`,
+        `http://localhost:8080/updated/status/${qrCode_id}`,
         {
           method: "PUT",
           headers: {
@@ -61,7 +60,9 @@ const QRCodeGenerator = (p) => {
       if (response.ok) {
         setQRData((p) =>
           p.map((qrItem) =>
-            qrItem.qr_id === qr_id ? { ...qrItem, status: newStatus } : qrItem
+            qrItem.qrCode_id === qrCode_id
+              ? { ...qrItem, status: newStatus }
+              : qrItem
           )
         );
       }
@@ -80,7 +81,7 @@ const QRCodeGenerator = (p) => {
           "Content-Type": "application/json",
         },
       });
-      setQRData((prev) => prev.filter((qr) => qr.qr_id !== id));
+      setQRData((prev) => prev.filter((qr) => qr.qrCode_id !== id));
     } catch (err) {
       console.log(err);
     }
@@ -140,7 +141,7 @@ const QRCodeGenerator = (p) => {
           QRdata.map((qr) => (
             <div
               className="bg-white border rounded-lg shadow-md p-4 flex flex-col items-center"
-              key={qr.qr_id}
+              key={qr.qrCode_id}
             >
               {qr.qr_data ? (
                 <NextImage
@@ -172,7 +173,7 @@ const QRCodeGenerator = (p) => {
                 <button
                   disabled={qr.status ? true : false}
                   id="A"
-                  onClick={() => handleUpdateStatus(qr.qr_id, "A")}
+                  onClick={() => handleUpdateStatus(qr.qrCode_id, "A")}
                   className="bg-green-600 text-white py-1 px-3 rounded w-full hover:bg-green-700 transition"
                 >
                   Good
@@ -180,7 +181,7 @@ const QRCodeGenerator = (p) => {
                 <button
                   disabled={qr.status ? true : false}
                   id="B"
-                  onClick={() => handleUpdateStatus(qr.qr_id, "B")}
+                  onClick={() => handleUpdateStatus(qr.qrCode_id, "B")}
                   className="bg-red-600 text-white py-1 px-3 rounded w-full hover:bg-red-700 transition"
                 >
                   Bad
@@ -194,7 +195,7 @@ const QRCodeGenerator = (p) => {
                 Download QR
               </button>
               <button
-                onClick={() => hanldeDelete(qr.qr_id)}
+                onClick={() => hanldeDelete(qr.qrCode_id)}
                 className="text-red-600 mt-2"
               >
                 Delete QR

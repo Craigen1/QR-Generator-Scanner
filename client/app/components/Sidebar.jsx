@@ -22,20 +22,22 @@ const Sidebar = ({ setActivePanel }) => {
 
   return (
     <div className="flex">
-      <div className="w-64 h-screen bg-base-200 p-4">
+      <div className="w-64 h-screen bg-base-200 p-4 shadow-lg">
         <Link href="">
-          {" "}
-          <h2 className="text-2xl font-bold mb-6 cursor-pointer">Menu</h2>
+          <h2 className="text-2xl font-bold mb-6 cursor-pointer text-primary">
+            Menu
+          </h2>
         </Link>
-        <ul className="menu menu-compact">
+        <ul className="menu p-0">
           {sideBar.map((items) => (
-            <div key={items.id}>
-              <li className="text-lg cursor-pointer my-1">
-                <button onClick={() => setActivePanel(items.code)}>
-                  {items.name}
-                </button>
-              </li>
-            </div>
+            <li key={items.id} className="mb-2">
+              <button
+                className="btn btn-outline btn-primary w-full text-left"
+                onClick={() => setActivePanel(items.code)}
+              >
+                {items.name}
+              </button>
+            </li>
           ))}
         </ul>
       </div>

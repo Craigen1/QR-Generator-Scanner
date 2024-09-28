@@ -6,7 +6,7 @@ import QRCodeGenerator from "../qrcode/QRCode";
 import CopyFromExcel from "../copyfromexcel/CopyFromExcel";
 import Sidebar from "../Sidebar";
 
-const page = () => {
+const Page = () => {
   const [user, setUser] = useState("");
   const [activePanel, setActivePanel] = useState("qrcode");
   const router = useRouter();
@@ -40,33 +40,36 @@ const page = () => {
       );
       setUser("");
     } catch (err) {
-      console.log("Error logout:", err);
+      console.log("Error logging out:", err);
     }
   };
 
   return (
-    <div className="flex">
+    <div className="flex h-screen bg-base-100">
       <Sidebar setActivePanel={setActivePanel} />
       <div className="flex-grow p-6">
-        <div className="flex justify-end">
-          <button onClick={logoutUser} className="underline">
+        <div className="flex justify-end mb-4">
+          <button onClick={logoutUser} className="btn btn-outline btn-error">
             Logout
           </button>
         </div>
+
         {user ? (
-          <h3 className="text-2xl ">
+          <h3 className="text-2xl">
             Hello, <span className="font-bold text-sky-500">{user}</span>
           </h3>
         ) : (
           <p>No user is logged in.</p>
         )}
 
-        {activePanel === "qrcode" && <QRCodeGenerator />}
-        {activePanel === "excel" && <CopyFromExcel />}
-        {activePanel === "users" && <div>Users Panel Component</div>}
+        <div className="mt-6">
+          {activePanel === "qrcode" && <QRCodeGenerator />}
+          {activePanel === "excel" && <CopyFromExcel />}
+          {activePanel === "users" && <div>Users Panel Component</div>}
+        </div>
       </div>
     </div>
   );
 };
 
-export default page;
+export default Page;
