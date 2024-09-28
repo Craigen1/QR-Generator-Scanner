@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import QRCodeGenerator from "../qrcode/QRCode";
 import CopyFromExcel from "../copyfromexcel/CopyFromExcel";
 import Sidebar from "../Sidebar";
+import UsersPanel from "../users/UsersPanel";
 
 const Page = () => {
   const [user, setUser] = useState("");
@@ -65,7 +66,7 @@ const Page = () => {
         <div className="mt-6">
           {activePanel === "qrcode" && <QRCodeGenerator />}
           {activePanel === "excel" && <CopyFromExcel />}
-          {activePanel === "users" && <div>Users Panel Component</div>}
+          {activePanel === "users" && <UsersPanel />}
         </div>
       </div>
     </div>

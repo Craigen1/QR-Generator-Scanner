@@ -66,10 +66,21 @@ app.post("/logout", (req, res) => {
   });
 });
 
+//GET AllUser
+app.get("/getAllUser", async (req, res) => {
+  try {
+    let pool = await sql.connect(config);
+    let q = await pool.request().query("SELECT * FROM usersTbl");
+    let allUser = q.recordset;
+    res.status(200).json(allUser);
+  } catch (err) {
+    console.log(err);
+  }
+});
+
 //GET User
 app.get("/getUser", async (req, res) => {
   if (req.session.user) {
-    // console.log("Get User Sesh:", req.session.user.firstName);
     res.status(200).json(req.session.user.firstName);
   } else {
     res.status(401).json({ message: "Not logged in" });
@@ -266,6 +277,35 @@ app.delete("/delete/qr/:id", async (req, res) => {
       .input("qrCode_id", sql.Int, id)
       .query("DELETE from qrcode WHERE qrCode_id = @qrCode_id");
     res.status(200).send("Delete QR successfully.");
+  } catch (err) {
+    console.log(err);
+  }
+});
+
+//DELETE user account
+app.delete("/deleteUser/:id", async (req, res) => {
+  let id = req.params.id;
+  console.log("params", id);
+  try {
+    let pool = await sql.connect(config);
+    await pool
+      .request()
+      .input("id", sql.Int, id)
+      .query("DELETE from usersTbl WHERE user_Id = @id");
+    res.status(200).send({ message: "Delete account successfully." });
+
+    //fixing delete user acc together with qr code
+    let Q_qr_id = await pool
+      .request()
+      .input("user_Id", sql.Int, id)
+      .query("SELECT qr_id FROM usersTbl WHERE user_Id = @user_Id");
+    let qr_id = Q_qr_id.recordset;
+    console.log(qr_id);
+
+    await pool
+      .request()
+      .input("qr_id", sql.Int, qr_id)
+      .query("DELETE qrCode WHERE qr_id = @qr_id");
   } catch (err) {
     console.log(err);
   }
