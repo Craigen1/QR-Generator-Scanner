@@ -47,18 +47,13 @@ const UsersPanel = (p) => {
   const handleModuleSelection = (moduleId) => {
     p.setUserModules((prevModules) =>
       prevModules.map((module) =>
-        module.id === moduleId
-          ? { ...module, isSelected: !module.access }
-          : module
+        module.id === moduleId ? { ...module, access: !module.access } : module
       )
     );
   };
 
   const handleModalClose = () => {
     setIsModalOpen(false);
-    p.setUserModules((prevModules) =>
-      prevModules.map((module) => ({ ...module, isSelected: false }))
-    );
   };
 
   return (
@@ -121,7 +116,7 @@ const UsersPanel = (p) => {
                     <div key={module.id} className="flex items-center">
                       <input
                         type="checkbox"
-                        checked={module.isSelected}
+                        checked={module.access}
                         onChange={() => handleModuleSelection(module.id)}
                         className="mr-2"
                       />
