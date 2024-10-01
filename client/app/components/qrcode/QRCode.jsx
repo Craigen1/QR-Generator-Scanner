@@ -164,18 +164,27 @@ const QRCodeGenerator = () => {
                     ) : (
                       <div>No QR code available</div>
                     )}
-                    <div className="text-center mt-3 mb-2">
-                      <p className="font-bold text-sky-600">{qr.QRitem_name}</p>
-                      <p className="text-gray-600">Price: ${qr.QRprice}</p>
-                      <p
-                        className={
-                          qr.status === "Good"
-                            ? "text-green-600 font-semibold"
-                            : "text-red-600 font-semibold"
-                        }
-                      >
-                        Status: {qr.status}
-                      </p>
+                    <div className="mt-3 mb-2">
+                      <div className="grid grid-cols-2 text-center">
+                        Item:{" "}
+                        <p className="font-bold text-sky-600">
+                          {qr.QRitem_name}
+                        </p>
+                      </div>
+
+                      {/* <p className="text-gray-600">Price: ${qr.QRprice}</p> */}
+                      <div className="grid grid-cols-2 text-center">
+                        <p> Status:</p>
+                        <p
+                          className={
+                            qr.status === "Good"
+                              ? "text-green-600 font-semibold"
+                              : "text-red-600 font-semibold"
+                          }
+                        >
+                          {qr.status}
+                        </p>
+                      </div>
                     </div>
                     <div className="flex justify-between items-center w-full">
                       <button

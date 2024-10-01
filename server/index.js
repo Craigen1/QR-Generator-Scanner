@@ -265,6 +265,49 @@ app.delete("/delete/:id", async (req, res) => {
   }
 });
 
+//GET All Modules
+app.get("/getAllModules", async (req, res) => {
+  try {
+    let pool = await sql.connect(config);
+    let q = await pool.request().query("SELECT * FROM usersModule");
+    res.status(200).json(q.recordset);
+  } catch (err) {
+    console.log("Err API Get All Mod", err);
+  }
+});
+
+//ADD Module
+app.post("/addmodule", async (req, res) => {
+  const userModules = req.body;
+  const userSession = req.session.user;
+  try {
+    let pool = await sql.connect(config);
+
+    for (let module of userModules) {
+      await pool
+        .request()
+        .input("mod_name", sql.NVarChar, module.mod_name)
+        .input("mod_active", sql.NVarChar, module.mod_active)
+        .input("mod_addModule", sql.Bit, module.mod_addModule)
+        .input("user_Id", sql.Int, userSession.user_Id)
+        .query(
+          `IF NOT EXISTS (
+          SELECT 1 FROM usersModule 
+          WHERE mod_name = @mod_name AND mod_active = @mod_active
+        )
+        BEGIN
+          INSERT INTO usersModule (mod_name, mod_active, mod_addModule, user_Id)
+          VALUES (@mod_name, @mod_active, @mod_addModule, @user_Id);
+        END;`
+        );
+    }
+
+    res.status(200).send({ message: "Add Module Successful" });
+  } catch (err) {
+    console.log("Error add module:", err);
+  }
+});
+
 app.listen(port, () => {
   console.log(`Listening on port: ${port}`);
 });

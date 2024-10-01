@@ -92,7 +92,7 @@ const CopyFromExcel = () => {
                 <td>
                   <button
                     onClick={() => handleDelete(item.personId)}
-                    className="btn btn-error"
+                    className="btn btn-error btn-sm"
                   >
                     Delete
                   </button>

@@ -11,21 +11,21 @@ const Page = () => {
   const [userModules, setUserModules] = useState([
     {
       id: 1,
-      name: "QR Code Generator",
-      code: "qrcode",
-      access: false,
+      mod_name: "QR Code Generator",
+      mod_active: "qrcode",
+      mod_addModule: 1,
     },
     {
       id: 2,
-      name: "Paste from Excel",
-      code: "excel",
-      access: false,
+      mod_name: "Paste from Excel",
+      mod_active: "excel",
+      mod_addModule: 0,
     },
     {
       id: 3,
-      name: "Users",
-      code: "users",
-      access: true,
+      mod_name: "Users",
+      mod_active: "users",
+      mod_addModule: 1,
     },
   ]);
   const [user, setUser] = useState("");
@@ -69,19 +69,21 @@ const Page = () => {
     <div className="flex h-screen bg-base-100">
       <Sidebar userModules={userModules} setActivePanel={setActivePanel} />
       <div className="flex-grow p-6">
-        <div className="flex justify-end mb-4">
-          <button onClick={logoutUser} className="btn btn-outline btn-error">
+        <div className="flex justify-between">
+          {user ? (
+            <h3 className="text-2xl">
+              Hello, <span className="font-bold text-blue-500">{user}</span>
+            </h3>
+          ) : (
+            <p>No user is logged in.</p>
+          )}
+          <button
+            onClick={logoutUser}
+            className="btn btn-outline btn-error btn-sm"
+          >
             Logout
           </button>
         </div>
-
-        {user ? (
-          <h3 className="text-2xl">
-            Hello, <span className="font-bold text-blue-500">{user}</span>
-          </h3>
-        ) : (
-          <p>No user is logged in.</p>
-        )}
         <div className="mt-6">
           {activePanel === "qrcode" && <QRCodeGenerator />}
           {activePanel === "excel" && <CopyFromExcel />}

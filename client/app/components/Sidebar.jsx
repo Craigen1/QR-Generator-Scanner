@@ -40,16 +40,16 @@ const Sidebar = (p) => {
         <ul className="space-y-2">
           {p.userModules.map((items) => (
             <li key={items.id} className="mb-2">
-              {items.access && (
+              {items.mod_addModule === 1 && (
                 <button
-                  onClick={() => handleSetActive(items.code)}
+                  onClick={() => handleSetActive(items.mod_active)}
                   className={`w-full p-2 rounded-lg text-left transition-colors ${
-                    activeCode === items.code
+                    activeCode === items.mod_active
                       ? "bg-blue-600 text-white"
                       : "bg-gray-100 text-gray-800 hover:bg-blue-100"
                   }`}
                 >
-                  {items.name}
+                  {items.mod_name}
                 </button>
               )}
             </li>

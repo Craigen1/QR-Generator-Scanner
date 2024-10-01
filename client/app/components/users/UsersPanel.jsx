@@ -4,9 +4,11 @@ import React, { useEffect, useState } from "react";
 
 const UsersPanel = (p) => {
   const [allUser, setAllUser] = useState([]);
+  const [allModules, setAllModules] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
 
+  //GET All Users
   useEffect(() => {
     const getAllUser = async () => {
       try {
@@ -18,12 +20,41 @@ const UsersPanel = (p) => {
         });
         setAllUser(response.data);
       } catch (err) {
-        console.log("Error GET ALL", err);
+        console.log("Error GET ALL User", err);
       }
     };
     getAllUser();
   }, []);
 
+  //GET All Modules
+  useEffect(() => {
+    const getAllModules = async () => {
+      try {
+        const response = await axios.get(
+          "http://localhost:8080/getAllModules",
+          {
+            headers: {
+              "Content-Type": "application/json",
+            },
+            withCredentials: true,
+          }
+        );
+        setAllModules(response.data);
+      } catch (err) {
+        console.log("Error GET ALL Modules", err);
+      }
+    };
+    getAllModules();
+  }, []);
+
+  //UPDATE Module
+  const updateModList = async () => {
+    await axios.post("http://localhost:8080/addmodule", p.userModules, {
+      withCredentials: true,
+    });
+  };
+
+  //DELETE User
   const handleDelete = async (id) => {
     try {
       await axios.delete(
@@ -44,20 +75,13 @@ const UsersPanel = (p) => {
     setIsModalOpen(true);
   };
 
-  const handleModuleSelection = (moduleId) => {
-    p.setUserModules((prevModules) =>
-      prevModules.map((module) =>
-        module.id === moduleId ? { ...module, access: !module.access } : module
-      )
-    );
-  };
-
-  const handleModalClose = () => {
-    setIsModalOpen(false);
-  };
-
   return (
     <div className="p-6">
+      <div className="flex justify-end">
+        <button onClick={updateModList} className="btn btn-sm bg-emerald-500">
+          Update Module
+        </button>
+      </div>
       <h1 className="text-3xl font-bold mb-4">Users Panel</h1>
       <div className="overflow-x-auto">
         <table className="table w-full">
@@ -112,26 +136,35 @@ const UsersPanel = (p) => {
                 </p>
                 <h3 className="text-lg font-semibold mb-2">Modules:</h3>
                 <div className="space-y-2">
-                  {p.userModules.map((module) => (
-                    <div key={module.id} className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={module.access}
-                        onChange={() => handleModuleSelection(module.id)}
-                        className="mr-2"
-                      />
-                      <label>{module.name}</label>
+                  {allModules.map((module) => (
+                    <div
+                      key={module.mod_id}
+                      className="flex justify-between items-center"
+                    >
+                      <div>
+                        <input
+                          type="checkbox"
+                          checked={module.mod_addModule}
+                          className="mr-2"
+                        />
+                        <label>{module.mod_name}</label>
+                      </div>
+                      <button className="btn btn-error btn-sm text-white">
+                        🗑
+                      </button>
                     </div>
                   ))}
                 </div>
               </div>
             )}
-            <button
-              className="mt-4 bg-red-600 text-white py-2 px-4 rounded hover:bg-red-700 transition mx-1"
-              onClick={handleModalClose}
-            >
-              Close
-            </button>
+            <div className="flex gap-5 mt-4">
+              <button
+                className="btn btn-sm btn-error hover:bg-red-700 transition"
+                onClick={() => setIsModalOpen(false)}
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
