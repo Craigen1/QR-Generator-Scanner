@@ -6,30 +6,11 @@ import QRCodeGenerator from "../qrcode/QRCode";
 import CopyFromExcel from "../copyfromexcel/CopyFromExcel";
 import Sidebar from "../Sidebar";
 import UsersPanel from "../users/UsersPanel";
+import { useUserStore } from "@/app/userStore/userStore";
 
 const Page = () => {
-  const [userModules, setUserModules] = useState([
-    {
-      id: 1,
-      mod_name: "QR Code Generator",
-      mod_active: "qrcode",
-      mod_addModule: 1,
-    },
-    {
-      id: 2,
-      mod_name: "Paste from Excel",
-      mod_active: "excel",
-      mod_addModule: 0,
-    },
-    {
-      id: 3,
-      mod_name: "Users",
-      mod_active: "users",
-      mod_addModule: 1,
-    },
-  ]);
   const [user, setUser] = useState("");
-  const [activePanel, setActivePanel] = useState("");
+  const { activePanel } = useUserStore();
   const router = useRouter();
 
   useEffect(() => {
@@ -40,6 +21,8 @@ const Page = () => {
         });
         if (res.data) {
           setUser(res.data);
+        } else {
+          router.push("/");
         }
       } catch (err) {
         router.push("/");
@@ -67,7 +50,7 @@ const Page = () => {
 
   return (
     <div className="flex h-screen bg-base-100">
-      <Sidebar userModules={userModules} setActivePanel={setActivePanel} />
+      <Sidebar />
       <div className="flex-grow p-6">
         <div className="flex justify-between">
           {user ? (
@@ -87,12 +70,7 @@ const Page = () => {
         <div className="mt-6">
           {activePanel === "qrcode" && <QRCodeGenerator />}
           {activePanel === "excel" && <CopyFromExcel />}
-          {activePanel === "users" && (
-            <UsersPanel
-              userModules={userModules}
-              setUserModules={setUserModules}
-            />
-          )}
+          {activePanel === "users" && <UsersPanel />}
         </div>
       </div>
     </div>

@@ -99,7 +99,7 @@ const QRCodeGenerator = () => {
       {/* QR Code Display Section */}
       <div className="w-full flex justify-end">
         <button
-          className="bg-blue-500 text-white py-2 px-4 rounded my-4 hover:bg-blue-700 transition"
+          className="bg-blue-600 text-white btn btn-sm mb-2 hover:bg-blue-700 transition"
           onClick={() => setIsModalOpen(true)}
         >
           View QR Codes

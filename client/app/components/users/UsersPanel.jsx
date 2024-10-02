@@ -1,12 +1,24 @@
 "use client";
+import { useUserStore } from "@/app/userStore/userStore";
 import axios from "axios";
 import React, { useEffect, useState } from "react";
 
-const UsersPanel = (p) => {
+const UsersPanel = () => {
   const [allUser, setAllUser] = useState([]);
-  const [allModules, setAllModules] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const {
+    allModules,
+    getAllModules,
+    updateModList,
+    handleChange,
+    deleteModule,
+  } = useUserStore();
+
+  //GET All Modules
+  useEffect(() => {
+    getAllModules();
+  }, []);
 
   //GET All Users
   useEffect(() => {
@@ -25,34 +37,6 @@ const UsersPanel = (p) => {
     };
     getAllUser();
   }, []);
-
-  //GET All Modules
-  useEffect(() => {
-    const getAllModules = async () => {
-      try {
-        const response = await axios.get(
-          "http://localhost:8080/getAllModules",
-          {
-            headers: {
-              "Content-Type": "application/json",
-            },
-            withCredentials: true,
-          }
-        );
-        setAllModules(response.data);
-      } catch (err) {
-        console.log("Error GET ALL Modules", err);
-      }
-    };
-    getAllModules();
-  }, []);
-
-  //UPDATE Module
-  const updateModList = async () => {
-    await axios.post("http://localhost:8080/addmodule", p.userModules, {
-      withCredentials: true,
-    });
-  };
 
   //DELETE User
   const handleDelete = async (id) => {
@@ -75,14 +59,18 @@ const UsersPanel = (p) => {
     setIsModalOpen(true);
   };
 
+  const handleRefresh = async () => {
+    await updateModList();
+  };
+
   return (
     <div className="p-6">
-      <div className="flex justify-end">
-        <button onClick={updateModList} className="btn btn-sm bg-emerald-500">
-          Update Module
+      <form onSubmit={handleRefresh}>
+        <h1 className="text-3xl font-bold mb-4">Users Panel</h1>
+        <button type="submit" className="text-xl btn btn-sm btn-outline">
+          ⟳
         </button>
-      </div>
-      <h1 className="text-3xl font-bold mb-4">Users Panel</h1>
+      </form>
       <div className="overflow-x-auto">
         <table className="table w-full">
           <thead>
@@ -104,12 +92,14 @@ const UsersPanel = (p) => {
                 <td>
                   <div className="flex space-x-2">
                     <button
-                      className="btn bg-emerald-500 btn-xs"
+                      className="btn bg-emerald-500 hover:bg-emerald-600 btn-xs"
                       onClick={() => handleViewClick(user)}
                     >
                       View
                     </button>
-                    <button className="btn btn-primary btn-xs">Edit</button>
+                    <button className="btn bg-blue-500 hover:bg-blue-600 btn-xs">
+                      Edit
+                    </button>
                     <button
                       onClick={() => handleDelete(user.user_Id)}
                       className="btn btn-error btn-xs"
@@ -131,9 +121,11 @@ const UsersPanel = (p) => {
             <h2 className="text-xl font-bold mb-4">User Access Control</h2>
             {selectedUser && (
               <div>
-                <p className="mb-2">
-                  User: {selectedUser.firstName} {selectedUser.lastName}
-                </p>
+                <div>
+                  <p className="mb-2">
+                    User: {selectedUser.firstName} {selectedUser.lastName}
+                  </p>
+                </div>
                 <h3 className="text-lg font-semibold mb-2">Modules:</h3>
                 <div className="space-y-2">
                   {allModules.map((module) => (
@@ -145,11 +137,15 @@ const UsersPanel = (p) => {
                         <input
                           type="checkbox"
                           checked={module.mod_addModule}
+                          onChange={() => handleChange(module.mod_id)}
                           className="mr-2"
                         />
                         <label>{module.mod_name}</label>
                       </div>
-                      <button className="btn btn-error btn-sm text-white">
+                      <button
+                        onClick={() => deleteModule(module.mod_id)}
+                        className="btn btn-error btn-sm text-white"
+                      >
                         🗑
                       </button>
                     </div>

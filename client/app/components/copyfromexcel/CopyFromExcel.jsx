@@ -20,8 +20,7 @@ const CopyFromExcel = () => {
     getPerson();
   }, []);
 
-  const handlePaste = async (e) => {
-    e.preventDefault();
+  const handlePaste = async () => {
     const readText = await navigator.clipboard.readText();
     readText.split("\n").forEach((text) => {
       let tText = text.split("\t");
@@ -69,10 +68,15 @@ const CopyFromExcel = () => {
 
   return (
     <div className="flex flex-col justify-center items-center text-center p-6">
-      <h2 className="font-bold text-3xl mb-4">Paste Text from Excel</h2>
-      <button onClick={handlePaste} className="btn btn-primary mb-4">
-        Paste Person
-      </button>
+      <form onSubmit={handlePaste}>
+        <h2 className="font-bold text-3xl mb-4">Paste Text from Excel</h2>
+        <button
+          type="submit"
+          className="bg-blue-600 hover:bg-blue-700 btn btn-sm text-white mb-4"
+        >
+          Paste
+        </button>
+      </form>
       <div className="overflow-x-auto w-full max-w-2xl">
         <table className="table w-full">
           <thead>

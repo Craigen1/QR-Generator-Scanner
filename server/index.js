@@ -276,7 +276,34 @@ app.get("/getAllModules", async (req, res) => {
   }
 });
 
-//ADD Module
+//UPDATE Modules Access(true/false)
+app.put("/updateModules", async (req, res) => {
+  const updatedModules = req.body;
+  const userSession = req.session.user;
+
+  try {
+    let pool = await sql.connect(config);
+    for (let module of updatedModules) {
+      await pool
+        .request()
+        .input("mod_addModule", sql.Bit, module.mod_addModule)
+        .input("user_Id", sql.Int, userSession.user_Id)
+        .input("mod_name", sql.NVarChar, module.mod_name)
+        .query(
+          `UPDATE usersModule
+           SET mod_addModule = @mod_addModule
+           WHERE user_Id = @user_Id AND mod_name = @mod_name;`
+        );
+    }
+
+    res.status(200).send({ message: "Modules updated successfully" });
+  } catch (err) {
+    console.error("Error updating modules:", err);
+    res.status(500).send({ message: "Error updating modules" });
+  }
+});
+
+//ADD New Module/s
 app.post("/addmodule", async (req, res) => {
   const userModules = req.body;
   const userSession = req.session.user;
@@ -291,20 +318,30 @@ app.post("/addmodule", async (req, res) => {
         .input("mod_addModule", sql.Bit, module.mod_addModule)
         .input("user_Id", sql.Int, userSession.user_Id)
         .query(
-          `IF NOT EXISTS (
-          SELECT 1 FROM usersModule 
-          WHERE mod_name = @mod_name AND mod_active = @mod_active
-        )
-        BEGIN
-          INSERT INTO usersModule (mod_name, mod_active, mod_addModule, user_Id)
-          VALUES (@mod_name, @mod_active, @mod_addModule, @user_Id);
-        END;`
+          `IF NOT EXISTS (SELECT 1 FROM usersModule WHERE mod_name = @mod_name AND user_Id = @user_Id)
+          BEGIN
+            INSERT INTO usersModule (mod_name, mod_active, mod_addModule, user_Id)
+            VALUES (@mod_name, @mod_active, @mod_addModule, @user_Id);
+          END`
         );
     }
-
     res.status(200).send({ message: "Add Module Successful" });
   } catch (err) {
     console.log("Error add module:", err);
+  }
+});
+
+//DELETE Module
+app.delete("/deleteModule/:id", async (req, res) => {
+  let id = req.params.id;
+  try {
+    let pool = await sql.connect(config);
+    await pool
+      .request()
+      .input("mod_id", sql.Int, id)
+      .query("DELETE FROM usersModule WHERE mod_id = @mod_id");
+  } catch (err) {
+    console.log("DELETE Module API", err);
   }
 });
 

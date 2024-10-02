@@ -1,18 +1,24 @@
 import Link from "next/link";
 import React from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AiOutlineMenu, AiOutlineClose } from "react-icons/ai";
+import { useUserStore } from "../userStore/userStore";
 
-const Sidebar = (p) => {
+const Sidebar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [activeCode, setActiveCode] = useState("");
+  const { allModules, getAllModules, setActivePanel } = useUserStore();
+
+  useEffect(() => {
+    getAllModules();
+  }, []);
 
   const handleToggle = () => {
     setIsOpen(!isOpen);
   };
 
   const handleSetActive = (code) => {
-    p.setActivePanel(code);
+    setActivePanel(code);
     setActiveCode(code);
   };
 
@@ -38,9 +44,9 @@ const Sidebar = (p) => {
         </Link>
 
         <ul className="space-y-2">
-          {p.userModules.map((items) => (
-            <li key={items.id} className="mb-2">
-              {items.mod_addModule === 1 && (
+          {allModules.map((items) => (
+            <li key={items.mod_id} className="mb-2">
+              {items.mod_addModule && (
                 <button
                   onClick={() => handleSetActive(items.mod_active)}
                   className={`w-full p-2 rounded-lg text-left transition-colors ${
