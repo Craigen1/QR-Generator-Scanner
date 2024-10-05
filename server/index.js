@@ -5,6 +5,9 @@ const config = require("./dbFiles/dbConfig");
 const QRCode = require("qrcode");
 const session = require("express-session");
 const crypto = require("crypto");
+const fetch = require("node-fetch");
+const https = require("https");
+const axios = require("axios");
 
 const port = 8080;
 
@@ -18,7 +21,6 @@ app.use(
     credentials: true,
   })
 );
-
 // Set up session middleware
 const sessionSecret = crypto.randomBytes(64).toString("hex");
 app.use(
@@ -33,22 +35,148 @@ app.use(
   })
 );
 
-// SIGNIN
+const httpsAgent = new https.Agent({
+  rejectUnauthorized: false, // Disable SSL certificate verification
+});
+
+//SAP LOGOUT
+app.post("/api/logout", async (req, res) => {
+  try {
+    const SessionId = req.session.sessionId;
+    await fetch("https://10.50.79.53:50000/b1s/v1/Logout", {
+      method: "POST",
+      agent: httpsAgent,
+      headers: {
+        Cookie: `B1SESSION=${SessionId}`,
+      },
+    });
+    req.session.destroy(() => {
+      res.status(200).send({ message: "Successfully logged out" });
+    });
+  } catch (err) {
+    console.log("Error API Logout", err);
+  }
+});
+
+//SAP LOGIN
+app.post("/api/login", async (req, res) => {
+  const { UserName, Password, CompanyDB } = req.body;
+  try {
+    const response = await fetch("https://10.50.79.53:50000/b1s/v1/Login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        UserName: UserName,
+        Password: Password,
+        CompanyDB: CompanyDB,
+      }),
+      agent: httpsAgent,
+    });
+    const data = await response.json();
+    req.session.sessionId = data.SessionId;
+    console.log("Login Response Data:", data);
+    res.json({ SessionId: req.session.sessionId });
+  } catch (error) {
+    console.error("Login failed:", error);
+    res
+      .status(500)
+      .json({ message: "Login failed", error: error.response.data });
+  }
+});
+
+//SAP GET ITEMS
+app.get("/api/items/:itemcode", async (req, res) => {
+  const { itemcode } = req.params;
+  console.log("ItemCode:", itemcode);
+  try {
+    const sessionId = req.session.sessionId;
+    console.log("GET Session:", sessionId);
+    const response = await fetch(
+      `https://10.50.79.53:50000/b1s/v1/Items('${itemcode}')?
+      $select=ItemCode,ItemName,ItemsGroupCode,SalesVATGroup,
+      ItemType,UpdateDate,UpdateTime,U_APP_ItemSGroup`,
+      {
+        method: "GET",
+        headers: {
+          Cookie: `B1SESSION=${sessionId}`,
+        },
+        agent: httpsAgent,
+      }
+    );
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    console.error("Error fetching items:", error);
+    res
+      .status(500)
+      .json({ message: "Error fetching items", error: error.response.data });
+  }
+});
+
+// SIGNUP Account
+app.post("/signup", async (req, res) => {
+  const { person, localUsersModule } = req.body;
+  try {
+    let pool = await sql.connect(config);
+    let existingUserQuery = await pool
+      .request()
+      .input("userName", sql.NVarChar, person.username)
+      .query(
+        "SELECT COUNT(*) AS count FROM usersTbl WHERE userName = @userName"
+      );
+
+    if (existingUserQuery.recordset[0].count > 0) {
+      res.status(200).json({ message: "Username already exist." });
+    } else {
+      let q = await pool
+        .request()
+        .input("firstName", sql.NVarChar, person.firstname)
+        .input("lastName", sql.NVarChar, person.lastname)
+        .input("userName", sql.NVarChar, person.username)
+        .input("userPass", sql.NVarChar, person.password)
+        .query(
+          `INSERT INTO usersTbl (firstName, lastName, userName, userPass) 
+        VALUES (@firstName, @lastName, @userName, @userPass);
+        SELECT SCOPE_IDENTITY() AS user_Id`
+        );
+      res.status(200).json({ message: "Account created successfully." });
+      const user_Id = q.recordset[0].user_Id;
+
+      for (let module of localUsersModule) {
+        await pool
+          .request()
+          .input("mod_name", sql.NVarChar, module.mod_name)
+          .input("mod_active", sql.NVarChar, module.mod_active)
+          .input("mod_addModule", sql.Bit, module.mod_addModule)
+          .input("user_Id", sql.Int, user_Id)
+          .query(
+            "INSERT INTO usersModule (mod_name, mod_active, mod_addModule, user_Id) VALUES (@mod_name, @mod_active, @mod_addModule, @user_Id)"
+          );
+      }
+    }
+  } catch (err) {
+    console.log(`Error API signup: ${err}`);
+    res.status(500).json({ message: "Internal server error." });
+  }
+});
+
+// SIGNIN Account
 app.post("/signin", async (req, res) => {
-  let { password, username } = req.body;
+  let { pPassword, uUsername } = req.body;
   try {
     let pool = await sql.connect(config);
     let result = await pool
       .request()
-      .input("password", sql.NVarChar, password)
-      .input("userName", sql.NVarChar, username)
+      .input("password", sql.NVarChar, pPassword)
+      .input("userName", sql.NVarChar, uUsername)
       .query(
         "SELECT user_Id, firstName, userName, userPass FROM usersTbl WHERE userPass = @password AND userName = @userName"
       );
 
     if (result.recordset.length > 0) {
       const userSession = (req.session.user = result.recordset[0]);
-      // console.log("Login Sesh", userSession);
       res.status(200).json({ message: "Login successful", user: userSession });
     } else {
       res.status(401).json({ message: "Invalid email or password" });
@@ -58,7 +186,7 @@ app.post("/signin", async (req, res) => {
   }
 });
 
-//Logout
+//Logout Account
 app.post("/logout", (req, res) => {
   req.session.destroy(() => {
     res.clearCookie("connect.sid");
@@ -84,28 +212,6 @@ app.get("/getUser", async (req, res) => {
     res.status(200).json(req.session.user.firstName);
   } else {
     res.status(401).json({ message: "Not logged in" });
-  }
-});
-
-//SIGNUP
-app.post("/signup", async (req, res) => {
-  const { firstname, lastname, username, password } = req.body;
-  try {
-    let pool = await sql.connect(config);
-    await pool
-      .request()
-      .input("firstName", sql.NVarChar, firstname)
-      .input("lastName", sql.NVarChar, lastname)
-      .input("userName", sql.NVarChar, username)
-      .input("userPass", sql.NVarChar, password)
-      .query(
-        `INSERT INTO usersTbl (firstName, lastName, userName, userPass) VALUES (@firstName, @lastName, @userName, @userPass)`
-      );
-
-    // Successfully created the user
-    res.status(200).json({ message: "Account created successfully." });
-  } catch (err) {
-    console.log(`Error API signup: ${err}`);
   }
 });
 
@@ -233,20 +339,20 @@ app.delete("/deleteUser/:id", async (req, res) => {
       .query("DELETE from usersTbl WHERE user_Id = @id");
     res.status(200).send({ message: "Delete account successfully." });
 
-    //fixing delete user acc together with qr code
-    let Q_qr_id = await pool
-      .request()
-      .input("user_Id", sql.Int, id)
-      .query("SELECT qr_id FROM usersTbl WHERE user_Id = @user_Id");
-    let qr_id = Q_qr_id.recordset;
-    console.log(qr_id);
+    // //fixing delete user acc together with qr code
+    // let Q_qr_id = await pool
+    //   .request()
+    //   .input("user_Id", sql.Int, id)
+    //   .query("SELECT qr_id FROM usersTbl WHERE user_Id = @user_Id");
+    // let qr_id = Q_qr_id.recordset;
+    // console.log(qr_id);
 
-    await pool
-      .request()
-      .input("qr_id", sql.Int, qr_id)
-      .query("DELETE qrCode WHERE qr_id = @qr_id");
+    // await pool
+    //   .request()
+    //   .input("qr_id", sql.Int, qr_id)
+    //   .query("DELETE qrCode WHERE qr_id = @qr_id");
   } catch (err) {
-    console.log(err);
+    console.log("Error Delete User Acc:", err);
   }
 });
 
@@ -265,35 +371,68 @@ app.delete("/delete/:id", async (req, res) => {
   }
 });
 
-//GET All Modules
-app.get("/getAllModules", async (req, res) => {
+//GET Modules per User(View Modal)
+app.get("/getModulePerUser", async (req, res) => {
+  const userSession = req.session.user;
   try {
     let pool = await sql.connect(config);
-    let q = await pool.request().query("SELECT * FROM usersModule");
+    let q = await pool
+      .request()
+      .input("user_Id", sql.Int, userSession.user_Id)
+      .query("SELECT * FROM usersModule");
+    let data = q.recordset;
+    res.status(200).json(data);
+  } catch (err) {
+    console.log("GetModulePerUser", err);
+  }
+});
+
+//GET All Modules (SIDEBAR)
+app.get("/getAllModules", async (req, res) => {
+  const userSession = req.session.user;
+  try {
+    let pool = await sql.connect(config);
+    let q2 = await pool
+      .request()
+      .input("user_Id", sql.Int, userSession.user_Id)
+      .query("SELECT * FROM usersTbl WHERE user_Id = @user_Id");
+    let data = q2.recordset[0];
+
+    let q = await pool
+      .request()
+      .input("user_Id", sql.Int, data.user_Id)
+      .query("SELECT * FROM usersModule WHERE user_Id = @user_Id");
+
     res.status(200).json(q.recordset);
   } catch (err) {
     console.log("Err API Get All Mod", err);
   }
 });
 
-//UPDATE Modules Access(true/false)
-app.put("/updateModules", async (req, res) => {
+//UPDATE Module Access(true/false)
+app.put("/updateModules/:id", async (req, res) => {
   const updatedModules = req.body;
-  const userSession = req.session.user;
-
+  let id = req.params.id;
+  console.log("Mod Id", id);
+  console.log("Updated Modules:", updatedModules);
   try {
     let pool = await sql.connect(config);
+
     for (let module of updatedModules) {
-      await pool
+      const modAddModuleValue = Number(module.mod_addModule);
+      console.log("Number:", modAddModuleValue);
+      let result = await pool
         .request()
-        .input("mod_addModule", sql.Bit, module.mod_addModule)
-        .input("user_Id", sql.Int, userSession.user_Id)
+        .input("mod_addModule", sql.Bit, modAddModuleValue)
+        .input("user_Id", sql.Int, module.user_Id)
+        .input("mod_id", sql.Int, id)
         .input("mod_name", sql.NVarChar, module.mod_name)
         .query(
           `UPDATE usersModule
            SET mod_addModule = @mod_addModule
-           WHERE user_Id = @user_Id AND mod_name = @mod_name;`
+           WHERE mod_id = @mod_id AND user_Id = @user_Id AND mod_name = @mod_name;`
         );
+      console.log("Rows affected:", result.rowsAffected);
     }
 
     res.status(200).send({ message: "Modules updated successfully" });
@@ -305,25 +444,28 @@ app.put("/updateModules", async (req, res) => {
 
 //ADD New Module/s
 app.post("/addmodule", async (req, res) => {
-  const userModules = req.body;
-  const userSession = req.session.user;
+  const localUsersModule = req.body;
   try {
     let pool = await sql.connect(config);
+    let q = await pool.request().query("SELECT user_Id FROM usersTbl");
+    const userId = q.recordset;
 
-    for (let module of userModules) {
-      await pool
-        .request()
-        .input("mod_name", sql.NVarChar, module.mod_name)
-        .input("mod_active", sql.NVarChar, module.mod_active)
-        .input("mod_addModule", sql.Bit, module.mod_addModule)
-        .input("user_Id", sql.Int, userSession.user_Id)
-        .query(
-          `IF NOT EXISTS (SELECT 1 FROM usersModule WHERE mod_name = @mod_name AND user_Id = @user_Id)
+    for (let module of localUsersModule) {
+      for (let usersId of userId) {
+        await pool
+          .request()
+          .input("mod_name", sql.NVarChar, module.mod_name)
+          .input("mod_active", sql.NVarChar, module.mod_active)
+          .input("mod_addModule", sql.Bit, module.mod_addModule)
+          .input("user_Id", sql.Int, usersId.user_Id)
+          .query(
+            `IF NOT EXISTS (SELECT 1 FROM usersModule WHERE mod_name = @mod_name AND user_Id = @user_Id)
           BEGIN
             INSERT INTO usersModule (mod_name, mod_active, mod_addModule, user_Id)
             VALUES (@mod_name, @mod_active, @mod_addModule, @user_Id);
           END`
-        );
+          );
+      }
     }
     res.status(200).send({ message: "Add Module Successful" });
   } catch (err) {
@@ -334,6 +476,7 @@ app.post("/addmodule", async (req, res) => {
 //DELETE Module
 app.delete("/deleteModule/:id", async (req, res) => {
   let id = req.params.id;
+  console.log("DELETE MODULE ID:", id);
   try {
     let pool = await sql.connect(config);
     await pool

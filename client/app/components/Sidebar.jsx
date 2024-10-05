@@ -1,5 +1,4 @@
 import Link from "next/link";
-import React from "react";
 import { useState, useEffect } from "react";
 import { AiOutlineMenu, AiOutlineClose } from "react-icons/ai";
 import { useUserStore } from "../userStore/userStore";

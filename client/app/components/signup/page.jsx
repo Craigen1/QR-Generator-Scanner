@@ -1,16 +1,16 @@
 "use client";
-import React, { useState } from "react";
-import axios from "axios";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useUserStore } from "@/app/userStore/userStore";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
-const signup = () => {
+const Signup = () => {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [message, setMessage] = useState("");
-  const router = useRouter();
+  const { signUp, message } = useUserStore();
 
   const person = {
     firstname: firstName,
@@ -19,34 +19,26 @@ const signup = () => {
     password: password,
   };
 
+  useEffect(() => {
+    if (message) {
+      if (message === "Username already exist.") {
+        toast.error(message);
+      } else {
+        toast.success(message);
+      }
+    }
+  }, [message]);
+
   const handelSignUp = async (e) => {
     e.preventDefault();
-    try {
-      const res = await axios.post("http://localhost:8080/signup", person);
-      setMessage(res.data.message);
-      console.log(message);
-    } catch (err) {
-      console.log(`Error SignUp yan kala mo: ${err}`);
-    }
+    await signUp(person);
   };
 
   return (
     <div className="flex justify-center items-center h-screen bg-gray-100">
       <div className="w-full max-w-md bg-white rounded-lg shadow-md p-8">
         <h2 className="text-2xl font-bold text-center mb-6">Sign Up</h2>
-        {message ? (
-          <p
-            className={`p-2 rounded-md text-center text-white mb-2 ${
-              message === "Username already exist."
-                ? "bg-red-400/80"
-                : "bg-green-400/80 "
-            }`}
-          >
-            {message}
-          </p>
-        ) : (
-          ""
-        )}
+
         <form>
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -55,7 +47,7 @@ const signup = () => {
             <input
               type="text"
               className="input input-bordered w-full"
-              placeholder="Enter your full name"
+              placeholder="Enter your first name"
               onChange={(e) => setFirstName(e.target.value)}
             />
           </div>
@@ -66,7 +58,7 @@ const signup = () => {
             <input
               type="text"
               className="input input-bordered w-full"
-              placeholder="Enter your full name"
+              placeholder="Enter your last name"
               onChange={(e) => setLastName(e.target.value)}
             />
           </div>
@@ -105,8 +97,9 @@ const signup = () => {
           </div>
         </form>
       </div>
+      <ToastContainer />
     </div>
   );
 };
 
-export default signup;
+export default Signup;

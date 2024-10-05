@@ -7,45 +7,21 @@ import CopyFromExcel from "../copyfromexcel/CopyFromExcel";
 import Sidebar from "../Sidebar";
 import UsersPanel from "../users/UsersPanel";
 import { useUserStore } from "@/app/userStore/userStore";
+import GetItems from "../getitem/GetItems";
 
 const Page = () => {
-  const [user, setUser] = useState("");
-  const { activePanel } = useUserStore();
+  const { activePanel, user, logoutUser, userAuth } = useUserStore();
   const router = useRouter();
 
   useEffect(() => {
-    const userAuth = async () => {
-      try {
-        const res = await axios.get("http://localhost:8080/getUser", {
-          withCredentials: true,
-        });
-        if (res.data) {
-          setUser(res.data);
-        } else {
-          router.push("/");
-        }
-      } catch (err) {
-        router.push("/");
-        console.log(err);
-      }
+    const uAuth = async () => {
+      await userAuth(router);
     };
-    userAuth();
+    uAuth;
   }, []);
 
-  const logoutUser = async () => {
-    router.push("/");
-    try {
-      await axios.post(
-        "http://localhost:8080/logout",
-        {},
-        {
-          withCredentials: true,
-        }
-      );
-      setUser("");
-    } catch (err) {
-      console.log("Error logging out:", err);
-    }
+  const logout = async () => {
+    await logoutUser(router);
   };
 
   return (
@@ -60,16 +36,14 @@ const Page = () => {
           ) : (
             <p>No user is logged in.</p>
           )}
-          <button
-            onClick={logoutUser}
-            className="btn btn-outline btn-error btn-sm"
-          >
+          <button onClick={logout} className="btn btn-outline btn-error btn-sm">
             Logout
           </button>
         </div>
         <div className="mt-6">
           {activePanel === "qrcode" && <QRCodeGenerator />}
           {activePanel === "excel" && <CopyFromExcel />}
+          {activePanel === "getitem" && <GetItems />}
           {activePanel === "users" && <UsersPanel />}
         </div>
       </div>

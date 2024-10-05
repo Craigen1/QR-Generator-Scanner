@@ -1,39 +1,14 @@
 "use client";
-import React, { useState } from "react";
-import axios from "axios";
 import Link from "next/link";
+import { useUserStore } from "./userStore/userStore";
 import { useRouter } from "next/navigation";
 
 export default function Home() {
   const router = useRouter();
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [message, setMessage] = useState("");
-
-  const handleSignIn = async (e) => {
+  const { handleSignIn, setPassword, setUsername, message } = useUserStore();
+  const Login = async (e) => {
     e.preventDefault();
-    const userCredentials = {
-      username,
-      password,
-    };
-    try {
-      const response = await axios.post(
-        "http://localhost:8080/signin",
-        userCredentials,
-        {
-          withCredentials: true,
-        }
-      );
-      if (
-        response.data.user.userName === username &&
-        response.data.user.userPass === password
-      ) {
-        router.push("/components/dashboard");
-      }
-    } catch (err) {
-      setMessage("Invalid Credentials");
-      console.log(`Error Login: ${err}`);
-    }
+    await handleSignIn(router);
   };
 
   return (
@@ -73,7 +48,7 @@ export default function Home() {
               />
             </div>
             <div className="mb-4">
-              <button onClick={handleSignIn} className="btn btn-primary w-full">
+              <button onClick={Login} className="btn btn-primary w-full">
                 Sign In
               </button>
             </div>
